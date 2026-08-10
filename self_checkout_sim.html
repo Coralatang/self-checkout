@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>セルフレジ体験</title>
+<style>
+  :root{
+    --blue-dark:#0b3d91;
+    --blue:#1e5fb4;
+    --blue-light:#3d84e8;
+    --accent:#ffcc33;
+    --danger:#e64545;
+    --ok:#2fae66;
+    --panel:#0f2650;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Microsoft JhengHei",sans-serif;
+    background:#dfe6ee;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 12px 60px;
+    min-height:100vh;
+  }
+  h1.page-title{
+    color:#26344a;
+    font-size:20px;
+    margin:0 0 16px;
+    font-weight:700;
+  }
+  .kiosk{
+    width:100%;
+    max-width:900px;
+    background:linear-gradient(180deg,#3a3f47,#20232a);
+    border-radius:28px;
+    padding:22px;
+    box-shadow:0 20px 40px rgba(0,0,0,.25);
+  }
+  .kiosk-brand{
+    text-align:center;
+    color:#cfd6e0;
+    font-size:12px;
+    letter-spacing:2px;
+    margin-bottom:10px;
+  }
+  .screen{
+    background:linear-gradient(160deg,var(--blue-dark),var(--blue) 55%,var(--blue-light));
+    border-radius:14px;
+    min-height:560px;
+    padding:22px;
+    position:relative;
+    color:#fff;
+    overflow:hidden;
+    border:6px solid #111;
+  }
+  .steps-bar{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    color:#cfe0ff;
+    margin-bottom:14px;
+    letter-spacing:1px;
+  }
+  .steps-bar span{
+    flex:1;
+    text-align:center;
+    padding:4px 2px;
+    border-bottom:3px solid rgba(255,255,255,.2);
+  }
+  .steps-bar span.active{
+    color:#fff;
+    font-weight:700;
+    border-bottom:3px solid var(--accent);
+  }
+  .steps-bar span.done{
+    color:#a7ffcf;
+    border-bottom:3px solid #2fae66;
+  }
+
+  .top-total{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:rgba(255,255,255,.12);
+    border-radius:10px;
+    padding:10px 16px;
+    margin-bottom:14px;
+    font-size:14px;
+  }
+  .top-total .amount{
+    font-size:22px;
+    font-weight:800;
+    color:var(--accent);
+  }
+
+  .main-area{
+    display:flex;
+    gap:16px;
+  }
+  .product-grid{
+    flex:1.4;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    align-content:start;
+  }
+  .product-card{
+    background:#fff;
+    color:#1a2a4a;
+    border-radius:10px;
+    padding:10px 8px;
+    text-align:center;
+    cursor:pointer;
+    border:2px solid transparent;
+    transition:transform .08s;
+    user-select:none;
+  }
+  .product-card:hover{ transform:translateY(-2px); border-color:var(--accent); }
+  .product-card:active{ transform:scale(.96); }
+  .product-emoji{ font-size:30px; }
+  .product-name{ font-size:13px; font-weight:700; margin-top:4px; }
+  .product-price{ font-size:12px; color:#3d5a8a; }
+  .product-barcode{
+    margin-top:6px;
+    font-size:9px;
+    letter-spacing:1px;
+    color:#888;
+    background:repeating-linear-gradient(90deg,#222 0 2px, transparent 2px 4px);
+    height:14px;
+    border-radius:2px;
+  }
+
+  .cart-panel{
+    flex:1;
+    background:rgba(255,255,255,.1);
+    border-radius:10px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    max-height:440px;
+  }
+  .cart-panel h3{ margin:0 0 8px; font-size:13px; color:#cfe0ff; }
+  .cart-list{
+    flex:1;
+    overflow-y:auto;
+    font-size:12px;
+  }
+  .cart-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:rgba(255,255,255,.9);
+    color:#1a2a4a;
+    border-radius:6px;
+    padding:6px 8px;
+    margin-bottom:6px;
+  }
+  .cart-row .name{ font-weight:700; }
+  .cart-row .qty{ color:#3d5a8a; font-size:11px; }
+  .cart-row button.del{
+    background:var(--danger);
+    color:#fff;
+    border:none;
+    border-radius:4px;
+    font-size:10px;
+    padding:3px 6px;
+    cursor:pointer;
+  }
+  .empty-cart{ color:#cfe0ff; font-size:12px; padding:20px 4px; text-align:center;}
+
+  .btn{
+    border:none;
+    border-radius:10px;
+    padding:14px 18px;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    color:#fff;
+    box-shadow:0 3px 0 rgba(0,0,0,.25);
+  }
+  .btn:active{ transform:translateY(2px); box-shadow:none; }
+  .btn.primary{ background:var(--ok); }
+  .btn.secondary{ background:#5b6b8c; }
+  .btn.warn{ background:var(--danger); }
+  .btn.accentbtn{ background:var(--accent); color:#3a2a00; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .checkout-bar{
+    margin-top:14px;
+    display:flex;
+    justify-content:flex-end;
+  }
+
+  .center-panel{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:420px;
+    text-align:center;
+    gap:18px;
+  }
+  .prompt-text{
+    font-size:22px;
+    font-weight:800;
+    background:rgba(255,255,255,.12);
+    padding:14px 22px;
+    border-radius:10px;
+  }
+  .sub-text{ font-size:13px; color:#dbe8ff; }
+  .choice-row{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+
+  .payment-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    max-width:560px;
+    margin:0 auto;
+  }
+  .pay-card{
+    background:#fff;
+    color:#1a2a4a;
+    border-radius:12px;
+    padding:20px 10px;
+    text-align:center;
+    cursor:pointer;
+    font-weight:800;
+    font-size:15px;
+  }
+  .pay-card:hover{ background:var(--accent); }
+  .pay-card .sub{ font-size:11px; font-weight:400; color:#556; margin-top:4px;}
+
+  .device-anim{
+    width:180px;
+    height:110px;
+    border-radius:12px;
+    background:#0a1a33;
+    border:3px solid #cfe0ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+  }
+  .card-slot{
+    width:120px;
+    height:14px;
+    background:#000;
+    border-radius:3px;
+  }
+  .card-graphic{
+    position:absolute;
+    width:80px;
+    height:50px;
+    background:linear-gradient(135deg,#ffcc33,#ff9933);
+    border-radius:6px;
+    top:-10px;
+    animation:insertCard 1.6s ease-in-out infinite;
+  }
+  @keyframes insertCard{
+    0%{ top:-45px; }
+    50%{ top:5px; }
+    100%{ top:-45px; }
+  }
+  .tap-graphic{
+    position:absolute;
+    width:70px;
+    height:44px;
+    background:linear-gradient(135deg,#33ccff,#3399ff);
+    border-radius:6px;
+    animation:tapCard 1.4s ease-in-out infinite;
+  }
+  @keyframes tapCard{
+    0%{ transform:translateY(60px) scale(1); opacity:0;}
+    40%{ transform:translateY(0) scale(1); opacity:1;}
+    60%{ transform:translateY(0) scale(1.05); opacity:1;}
+    100%{ transform:translateY(60px) scale(1); opacity:0;}
+  }
+  .qr-box{
+    width:110px;
+    height:110px;
+    background:
+      repeating-linear-gradient(0deg,#000 0 6px, #fff 6px 12px),
+      repeating-linear-gradient(90deg,#000 0 6px, #fff 6px 12px);
+    background-blend-mode:multiply;
+  }
+
+  .cash-panel{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .cash-input{
+    font-size:20px;
+    padding:8px 12px;
+    border-radius:8px;
+    border:none;
+    width:160px;
+    text-align:center;
+  }
+
+  .modal-overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:20;
+  }
+  .modal-box{
+    background:#fff;
+    color:#1a2a4a;
+    border-radius:14px;
+    padding:22px 24px;
+    width:320px;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  .modal-box h4{ margin:0 0 6px; font-size:16px;}
+  .modal-box p.note{ font-size:12px; color:#556; margin-bottom:14px;}
+  .modal-choices{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .modal-choices .btn{ font-size:13px; padding:10px 14px;}
+
+  .vocab-box{
+    margin-top:16px;
+    background:#1a2a4a;
+    color:#fff;
+    border-radius:12px;
+    padding:12px 16px;
+    max-width:900px;
+    width:100%;
+    font-size:13px;
+    line-height:1.7;
+  }
+  .vocab-box .label{
+    font-size:11px;
+    color:#9fc2ff;
+    letter-spacing:2px;
+    margin-bottom:4px;
+  }
+  .vocab-box .word{
+    display:inline-block;
+    background:var(--accent);
+    color:#3a2a00;
+    font-weight:800;
+    padding:2px 8px;
+    border-radius:6px;
+    margin:2px 4px 2px 0;
+  }
+  .vocab-box .tr{ color:#cfd8ea; font-weight:400; margin-right:14px;}
+
+  .receipt{
+    background:#fff;
+    color:#1a2a4a;
+    width:220px;
+    margin:0 auto;
+    padding:14px 16px;
+    font-size:12px;
+    border-radius:4px;
+    box-shadow:0 8px 20px rgba(0,0,0,.3);
+    font-family:"Courier New",monospace;
+  }
+  .receipt hr{ border:none; border-top:1px dashed #99a; margin:6px 0;}
+  .receipt .rrow{ display:flex; justify-content:space-between; }
+  .receipt .total{ font-weight:800; font-size:14px; }
+
+  .reset-btn{
+    margin-top:20px;
+  }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">🏪 セルフレジ体験</h1>
+
+<div class="kiosk">
+  <div class="kiosk-brand">セルフレジ</div>
+  <div class="screen" id="screen"></div>
+</div>
+
+<div class="vocab-box" id="vocabBox"></div>
+
+<script>
+const AUDIO_CTX = window.AudioContext ? new (window.AudioContext||window.webkitAudioContext)() : null;
+function beep(freq=1200, dur=0.09){
+  if(!AUDIO_CTX) return;
+  const o = AUDIO_CTX.createOscillator();
+  const g = AUDIO_CTX.createGain();
+  o.type = 'sine';
+  o.frequency.value = freq;
+  g.gain.value = 0.15;
+  o.connect(g); g.connect(AUDIO_CTX.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001, AUDIO_CTX.currentTime + dur);
+  o.stop(AUDIO_CTX.currentTime + dur);
+}
+
+const PRODUCTS = [
+  {id:'onigiri', name:'おにぎり', emoji:'🍙', price:150},
+  {id:'ocha',    name:'お茶',     emoji:'🍵', price:150},
+  {id:'pan',     name:'パン',     emoji:'🥐', price:180},
+  {id:'bento',   name:'お弁当',   emoji:'🍱', price:450},
+  {id:'gum',     name:'ガム',     emoji:'🍬', price:100},
+  {id:'coffee',  name:'コーヒー', emoji:'☕', price:200},
+];
+const BAG_PRICE = 5;
+
+let state = {
+  step: 'scan', // scan -> points -> bag -> payment -> processing -> complete
+  cart: {},     // id -> qty
+  modal: null,  // {productId}
+  hasPoints: null,
+  pointsScanned:false,
+  bag: null,
+  paymentMethod:null,
+  cashInserted:0,
+};
+
+function cartTotal(){
+  let t = 0;
+  for(const id in state.cart){
+    const p = PRODUCTS.find(p=>p.id===id);
+    t += p.price * state.cart[id];
+  }
+  if(state.bag === 'yes') t += BAG_PRICE;
+  return t;
+}
+function cartCount(){
+  return Object.values(state.cart).reduce((a,b)=>a+b,0);
+}
+
+function scanItem(id){
+  beep();
+  if(state.cart[id]){
+    state.modal = {productId:id};
+  } else {
+    state.cart[id] = 1;
+  }
+  render();
+}
+function confirmDuplicate(choice){
+  const id = state.modal.productId;
+  if(choice === 'yes'){
+    state.cart[id] += 1;
+  } else if(choice === 'delete'){
+    state.cart[id] = Math.max(0, state.cart[id]-1);
+    if(state.cart[id]===0) delete state.cart[id];
+  }
+  // 'no' -> do nothing, just close modal
+  state.modal = null;
+  render();
+}
+function removeLine(id){
+  delete state.cart[id];
+  render();
+}
+
+function goCheckout(){
+  if(cartCount()===0) return;
+  state.step = 'points';
+  render();
+}
+function choosePoints(has){
+  state.hasPoints = has;
+  if(has){
+    state.pointsScanned = false;
+  } else {
+    state.step = 'bag';
+  }
+  render();
+}
+function scanPointsCard(){
+  beep(900);
+  state.pointsScanned = true;
+  setTimeout(()=>{ state.step='bag'; render(); }, 500);
+  render();
+}
+function chooseBag(v){
+  state.bag = v;
+  state.step = 'payment';
+  render();
+}
+function choosePayment(method){
+  state.paymentMethod = method;
+  state.step = 'processing';
+  render();
+}
+function finishProcessing(){
+  state.step = 'complete';
+  render();
+}
+function insertCash(){
+  const total = cartTotal();
+  const input = document.getElementById('cashInput');
+  let val = parseInt(input.value,10);
+  if(isNaN(val) || val < total){ val = total; }
+  state.cashInserted = val;
+  beep(700,0.15);
+  setTimeout(()=>{ finishProcessing(); }, 500);
+}
+function resetAll(){
+  state = {step:'scan', cart:{}, modal:null, hasPoints:null, pointsScanned:false, bag:null, paymentMethod:null, cashInserted:0};
+  render();
+}
+
+function stepBarHTML(){
+  const order = ['scan','points','bag','payment','processing','complete'];
+  const labels = {scan:'①スキャン', points:'②ポイント', bag:'③レジ袋', payment:'④お支払い', processing:'⑤決済中', complete:'⑤完了'};
+  const idx = order.indexOf(state.step);
+  return `<div class="steps-bar">${order.map((s,i)=>{
+    let cls = i<idx ? 'done' : (i===idx?'active':'');
+    return `<span class="${cls}">${labels[s]}</span>`;
+  }).join('')}</div>`;
+}
+
+function topTotalHTML(){
+  return `<div class="top-total">
+    <span>合計 ${cartCount()} 点</span>
+    <span class="amount">¥${cartTotal().toLocaleString()}</span>
+  </div>`;
+}
+
+function vocabHTML(){
+  const V = {
+    scan: [['スキャン','掃描'],['バーコード','條碼']],
+    modal: [['同じ商品を追加しますか。','要新增一件相同的商品嗎？'],['はい','是'],['いいえ','不是'],['削除','刪除']],
+    checkout: [['お会計','結帳'],['お支払い','付款']],
+    points: [['ポイントカードはお持ちですか','您有集點卡嗎？'],['持っていない','沒有'],['いいえ','不是']],
+    bag: [['レジ袋','購物袋'],['レジ袋不要','不需要袋子']],
+    payment: [['現金','現金'],['クレジットカード','信用卡'],['電子マネー／交通系','電子支付／交通IC卡'],['バーコード決済','掃碼支付']],
+    card: [['差し込んでください','請插卡'],['タッチしてください','請感應']],
+    complete: [['レシート','收據'],['完了','完成']],
+  };
+  let key = 'scan';
+  if(state.modal) key = 'modal';
+  else if(state.step==='points') key='points';
+  else if(state.step==='bag') key='bag';
+  else if(state.step==='payment') key='payment';
+  else if(state.step==='processing') key = (state.paymentMethod==='cash') ? 'payment' : 'card';
+  else if(state.step==='complete') key='complete';
+  else if(state.step==='scan' && cartCount()>0) key='checkout';
+
+  const items = V[key];
+  return `<div class="label">今の画面のキーワード ／ 這個畫面的關鍵字</div>
+    ${items.map(([w,t])=>`<span class="word">${w}</span><span class="tr">${t}</span>`).join('')}`;
+}
+
+function productGridHTML(){
+  return `<div class="product-grid">
+    ${PRODUCTS.map(p=>`
+      <div class="product-card" onclick="scanItem('${p.id}')">
+        <div class="product-emoji">${p.emoji}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">¥${p.price}</div>
+        <div class="product-barcode"></div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+function cartPanelHTML(){
+  const ids = Object.keys(state.cart);
+  return `<div class="cart-panel">
+    <h3>🛒 スキャン済み商品</h3>
+    <div class="cart-list">
+      ${ids.length===0 ? '<div class="empty-cart">商品のバーコードを<br>スキャンしてください</div>' :
+        ids.map(id=>{
+          const p = PRODUCTS.find(p=>p.id===id);
+          return `<div class="cart-row">
+            <div>
+              <div class="name">${p.emoji} ${p.name}</div>
+              <div class="qty">数量 ${state.cart[id]} × ¥${p.price}</div>
+            </div>
+            <button class="del" onclick="removeLine('${id}')">削除</button>
+          </div>`;
+        }).join('')
+      }
+    </div>
+    <div class="checkout-bar">
+      <button class="btn primary" ${cartCount()===0?'disabled':''} onclick="goCheckout()">お会計 ／ お支払い ▶</button>
+    </div>
+  </div>`;
+}
+
+function modalHTML(){
+  if(!state.modal) return '';
+  const p = PRODUCTS.find(p=>p.id===state.modal.productId);
+  return `<div class="modal-overlay">
+    <div class="modal-box">
+      <h4>${p.emoji} ${p.name}</h4>
+      <p class="note">同じ商品を追加しますか。</p>
+      <div class="modal-choices">
+        <button class="btn primary" onclick="confirmDuplicate('yes')">はい</button>
+        <button class="btn secondary" onclick="confirmDuplicate('no')">いいえ</button>
+        <button class="btn warn" onclick="confirmDuplicate('delete')">削除</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function pointsScreenHTML(){
+  if(state.hasPoints === null){
+    return `<div class="center-panel">
+      <div class="prompt-text">ポイントカードはお持ちですか。</div>
+      <div class="choice-row">
+        <button class="btn primary" onclick="choosePoints(true)">持っている</button>
+        <button class="btn secondary" onclick="choosePoints(false)">持っていない ／ いいえ</button>
+      </div>
+    </div>`;
+  }
+  if(state.hasPoints && !state.pointsScanned){
+    return `<div class="center-panel">
+      <div class="prompt-text">カードをスキャンしてください</div>
+      <div class="device-anim"><div class="card-slot"></div></div>
+      <button class="btn primary" onclick="scanPointsCard()">スキャンする</button>
+    </div>`;
+  }
+  return `<div class="center-panel"><div class="prompt-text">スキャン完了！</div></div>`;
+}
+
+function bagScreenHTML(){
+  return `<div class="center-panel">
+    <div class="prompt-text">レジ袋はご利用になりますか。</div>
+    <div class="sub-text">（+¥${BAG_PRICE}）</div>
+    <div class="choice-row">
+      <button class="btn primary" onclick="chooseBag('yes')">🛍 レジ袋を追加</button>
+      <button class="btn secondary" onclick="chooseBag('no')">レジ袋不要</button>
+    </div>
+  </div>`;
+}
+
+function paymentScreenHTML(){
+  return `<div class="center-panel">
+    <div class="prompt-text">お支払い方法をお選びください</div>
+    <div class="sub-text">合計 ¥${cartTotal().toLocaleString()}</div>
+    <div class="payment-grid">
+      <div class="pay-card" onclick="choosePayment('cash')">💴 現金</div>
+      <div class="pay-card" onclick="choosePayment('credit')">💳 クレジットカード</div>
+      <div class="pay-card" onclick="choosePayment('emoney')">📱 電子マネー／交通系</div>
+      <div class="pay-card" onclick="choosePayment('qr')">🔲 バーコード決済</div>
+    </div>
+  </div>`;
+}
+
+function processingScreenHTML(){
+  const total = cartTotal();
+  if(state.paymentMethod === 'credit'){
+    return `<div class="center-panel">
+      <div class="prompt-text">差し込んでください</div>
+      <div class="sub-text">合計 ¥${total.toLocaleString()}</div>
+      <div class="device-anim"><div class="card-slot"></div><div class="card-graphic"></div></div>
+      <button class="btn primary" onclick="finishProcessing()">挿入完了</button>
+    </div>`;
+  }
+  if(state.paymentMethod === 'emoney'){
+    return `<div class="center-panel">
+      <div class="prompt-text">タッチしてください</div>
+      <div class="sub-text">合計 ¥${total.toLocaleString()}</div>
+      <div class="device-anim"><div class="tap-graphic"></div></div>
+      <button class="btn primary" onclick="finishProcessing()">タッチする</button>
+    </div>`;
+  }
+  if(state.paymentMethod === 'qr'){
+    return `<div class="center-panel">
+      <div class="prompt-text">バーコードをスキャンしてください</div>
+      <div class="sub-text">合計 ¥${total.toLocaleString()}</div>
+      <div class="qr-box"></div>
+      <button class="btn primary" onclick="finishProcessing()">スキャンする</button>
+    </div>`;
+  }
+  // cash
+  return `<div class="center-panel">
+    <div class="prompt-text">現金を投入してください</div>
+    <div class="sub-text">合計 ¥${total.toLocaleString()}</div>
+    <div class="cash-panel">
+      <input id="cashInput" class="cash-input" type="number" value="${total}" min="${total}">
+      <button class="btn primary" onclick="insertCash()">投入する</button>
+    </div>
+  </div>`;
+}
+
+function completeScreenHTML(){
+  const total = cartTotal();
+  const change = state.paymentMethod==='cash' ? Math.max(0, state.cashInserted-total) : 0;
+  const ids = Object.keys(state.cart);
+  return `<div class="center-panel">
+    <div class="prompt-text">完了</div>
+    <div class="sub-text">ご利用ありがとうございました</div>
+    <div class="receipt">
+      <div style="text-align:center;font-weight:800;">レシート</div>
+      <hr>
+      ${ids.map(id=>{
+        const p = PRODUCTS.find(p=>p.id===id);
+        return `<div class="rrow"><span>${p.name} ×${state.cart[id]}</span><span>¥${p.price*state.cart[id]}</span></div>`;
+      }).join('')}
+      ${state.bag==='yes' ? `<div class="rrow"><span>レジ袋</span><span>¥${BAG_PRICE}</span></div>` : ''}
+      <hr>
+      <div class="rrow total"><span>合計</span><span>¥${total.toLocaleString()}</span></div>
+      ${state.paymentMethod==='cash' ? `
+      <div class="rrow"><span>お預かり</span><span>¥${state.cashInserted.toLocaleString()}</span></div>
+      <div class="rrow"><span>おつり</span><span>¥${change.toLocaleString()}</span></div>` : ''}
+    </div>
+    <div class="sub-text">レシート${state.paymentMethod==='cash'&&change>0?'とおつり':''}をお取りください</div>
+    <button class="btn secondary reset-btn" onclick="resetAll()">🔄 はじめから</button>
+  </div>`;
+}
+
+function render(){
+  const screen = document.getElementById('screen');
+  let body = '';
+
+  if(state.step === 'scan'){
+    body = `
+      ${topTotalHTML()}
+      <div class="main-area">
+        ${productGridHTML()}
+        ${cartPanelHTML()}
+      </div>
+    `;
+  } else if(state.step === 'points'){
+    body = `${topTotalHTML()}${pointsScreenHTML()}`;
+  } else if(state.step === 'bag'){
+    body = `${topTotalHTML()}${bagScreenHTML()}`;
+  } else if(state.step === 'payment'){
+    body = `${topTotalHTML()}${paymentScreenHTML()}`;
+  } else if(state.step === 'processing'){
+    body = `${topTotalHTML()}${processingScreenHTML()}`;
+  } else if(state.step === 'complete'){
+    body = completeScreenHTML();
+  }
+
+  screen.innerHTML = stepBarHTML() + body + modalHTML();
+  document.getElementById('vocabBox').innerHTML = vocabHTML();
+}
+
+render();
+</script>
+</body>
+</html>
